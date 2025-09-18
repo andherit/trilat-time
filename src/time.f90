@@ -72,7 +72,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
 
 ! ntoc is not used anymore in this version. We use FVsNodes instead
 
-!   verbose=.true.
+!   verbose=0
 
 ! initialize the secondary distance array
   secondary_time = time   ! distarray = secondary sources
@@ -113,8 +113,8 @@ subroutine timeonevsall2dV2(amesh,adiff)
      ntodo%previous=>pcur ! linking the current list position to the first element ntodo
   enddo
 
-   if (verbose) call printlist(ntodo)
-   if (verbose) write(*,*) 'entering in the ntodo list management loop'
+   if (verbose == 2) call printlist(ntodo)
+   if (verbose == 1) write(*,*) 'entering in the ntodo list management loop'
 
 ! initializing reloop to true
 ! The condition is changed or not at the end of the loop
@@ -127,10 +127,10 @@ subroutine timeonevsall2dV2(amesh,adiff)
 ! loop on the to do list 
     do while (associated(ntodo))
 ! searching the node with the minimum time in the ntodo list : pmin
-      if (verbose) call printlist(ntodo)
+      if (verbose == 2) call printlist(ntodo)
        call lookformin(ntodo,secondary_time,amesh%Nnodes,pmin)
-       if (verbose) write(*,*) 'propagating time from node #',pmin%idnode-1
-       if (verbose) write(*,*) 'its own time is :',time(pmin%idnode)
+       if (verbose == 1) write(*,*) 'propagating time from node #',pmin%idnode-1
+       if (verbose == 2) write(*,*) 'its own time is :',time(pmin%idnode)
 
 !    initilisation of the sweep loop
       hasbeenupdated=.true.
@@ -140,7 +140,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
         hasbeenupdated=.false.
         icounter = icounter+1
         toggle=3-toggle   !    toggle variable swap state between 1 and 2 at each sweep
-        if (verbose) then
+        if (verbose == 1) then
           if (toggle==1) write(*,*) 'sweep forward'
           if (toggle==2) write(*,*) 'sweep backward'
         endif
@@ -162,8 +162,8 @@ subroutine timeonevsall2dV2(amesh,adiff)
 !          cycle if the node kn is not attached to pmin%idnode
            if (amesh%FVsNodes(pmin%idnode,kn,1)==0) cycle ! nodes pmin and kn are not linked in the mesh
            
-           if (verbose) write(*,*) '####################################################'
-           if (verbose) write(*,*) 'working to extent node ',pmin%idnode-1,' to ', kn-1
+           if (verbose == 1) write(*,*) '####################################################'
+           if (verbose == 1) write(*,*) 'working to extent node ',pmin%idnode-1,' to ', kn-1
 
 !          definition of the cell indexes and node indexes on both side of the edge
            idcell=amesh%FVsNodes(pmin%idnode,kn,:) ! idcell(2) is the 2 cell indexes on each side of the edge (pmin%idnode,kn)
@@ -190,7 +190,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
               tedge=tri_ops%t1+tri_ops%d13/velocity(idcell(1))
            endif
            kedge=min(tri_ops%k1+tri_ops%d13,infinity)
-           if (verbose) write(*,*) 'tedge : ',tedge
+           if (verbose == 2) write(*,*) 'tedge : ',tedge
 
 !     lists of the operator to consider :
 
@@ -204,7 +204,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
            tri_ops%t2a = infinity 
            tri_ops%t2b = infinity
            do i=1,2
-              if (verbose) write(*,*) "cell number : ",i,idcell(i)-1
+              if (verbose == 2) write(*,*) "cell number : ",i,idcell(i)-1
               if (idcell(i) == 0) cycle
               tri_ops%d12=donedge(amesh,pmin%idnode,idnode(i))
               tri_ops%d23=donedge(amesh,idnode(i),kn)
@@ -282,7 +282,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
 
 ! curved operators                
                if (do_tface) call calc_tcircle(tri_ops,kface(i),tface(i),verbose)
-               if (verbose) write(*,*) 'tface : ',do_tface,tface(i)
+               if (verbose == 2) write(*,*) 'tface : ',do_tface,tface(i)
                if (do_thead) call calc_thead(tri_ops,khead,thead(i))
 
 ! planar operator                
@@ -296,7 +296,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
 
                endif 
 
-                if (verbose) then 
+                if (verbose == 2) then 
                   write(*,*) '---------------------------------------'
                   write(*,*) "using idnode : ",idnode(i)-1
                   if (i==1) then
@@ -327,8 +327,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
           ttest=min(tedge,tplane(1),tplane(2),tface(1),tface(2),thead(1),thead(2))
 
 
-         !   if (verbose) write(*,*) 'ttest : ',ttest
-           if (verbose) then 
+           if (verbose == 2) then 
             write(*,*) 'ttest : ',ttest
             write(*,*) 'edge:   ',tedge
             write(*,*) 'face: ', tface(1),tface(2)
@@ -340,7 +339,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
            if (ttest > secondary_time(kn)) cycle
 
 ! save all estimates 
-         if (verbose) then 
+         if (verbose == 3) then 
            sface(kn) = min(tface(1),tface(2),sface(kn))
            shead(kn) = min(thead(1),thead(2),shead(kn) )
            splane(kn) = min(tplane(1),tplane(2),splane(kn))
@@ -352,23 +351,6 @@ subroutine timeonevsall2dV2(amesh,adiff)
 
 !    if the result is equal to the time in kn with a smaller mode, do an update of mode and kappa
 
-!        ttestmatch=.false.
-!        gonextkn=.false.
-!        do i=1,2
-!           call test_face(ttest,tface(i),kface(i),secondary_time(kn),mode(kn),kappa(kn),gonextkn,ttestmatch)
-!           if ((gonextkn).or.(ttestmatch)) exit 
-!        enddo
-!         do i=1,2
-!           call test_head(ttest,thead(i),infinity,secondary_time(kn),mode(kn),kappa(kn),gonextkn,ttestmatch)
-!           if ((gonextkn).or.(ttestmatch)) exit 
-!        enddo
-!      if (gonextkn) cycle
-!        do i=1,2
-!         call test_plane(ttest,tplane(i),secondary_time(kn),mode(kn),kappa(kn),gonextkn,ttestmatch)
-!         if ((gonextkn).or.(ttestmatch)) exit
-!        enddo              
-!        if (gonextkn) cycle
-!    tface is the best (mode=1)
          if (abs(ttest-tface(1)) <= water_level(ttest)) then
             if (.not.better_face(ttest,tface(1),kface(1),secondary_time(kn),mode(kn),kappa(kn))) cycle
          elseif (abs(ttest-tface(2)) <= water_level(ttest)) then
@@ -393,7 +375,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
 !       update if needed ntodo list with kn
 !       
         if (.not.inthelist(kn)) then
-           if (verbose) write(*,*) ' adding ',kn-1,' to the list', mode(kn),secondary_time(kn)
+           if (verbose == 2) write(*,*) ' adding ',kn-1,' to the list', mode(kn),secondary_time(kn)
            inthelist(kn)=.true.
            allocate(ntodo%previous%next)
            nullify(ntodo%previous%next%next)
@@ -429,9 +411,9 @@ subroutine timeonevsall2dV2(amesh,adiff)
    endif
 ! remove pmin element from the to do list
     inthelist(pmin%idnode)=.false.
-    if (verbose) write(*,*) "removing ",pmin%idnode-1," from the list"
+    if (verbose == 2) write(*,*) "removing ",pmin%idnode-1," from the list"
     call removepminfromthelist(pmin,ntodo)
-    if (verbose) read(*,*)
+    if (verbose == 2) read(*,*)
 
    enddo ! associated(ntodo)
 
@@ -620,7 +602,8 @@ end subroutine calc_tonedge
 !###############################################################################
 function calc_trilat(tri_ops,verbose)
    type(ops) :: tri_ops
-   logical :: calc_trilat,verbose
+   logical :: calc_trilat
+   integer(pin) :: verbose
 
    ! function calc_trilat(d12,d13,d23,t1,t2,k1,k2,v,x,y,xc,yc,a)
    ! computes the coordinates in 2D plane of three vertices V1,V2,V3 making the
@@ -640,7 +623,7 @@ function calc_trilat(tri_ops,verbose)
 
    po1%x=tri_ops%x3
    po1%y=tri_ops%y3
- ! if (verbose) write(*,*) 'tcircle - x,y :',x,y
+ ! if (verbose==3) write(*,*) 'tcircle - x,y :',x,y
 
    tri_ops%xc2=(tri_ops%d12**2._pr-tri_ops%k2**2._pr+tri_ops%k1**2._pr)/(2._pr*tri_ops%d12)
    yc_sqrt = tri_ops%k1**2._pr-tri_ops%xc2**2._pr
@@ -650,10 +633,10 @@ function calc_trilat(tri_ops,verbose)
    endif
    tri_ops%yc2 = -sqrt(yc_sqrt)  ! minus required as this is the virtual source located below the triangle 
 
- ! if (verbose) write(*,*) 'tcircle - xc,yc :',xc,yc 
+ ! if (verbose==3) write(*,*) 'tcircle - xc,yc :',xc,yc 
    po2%x = tri_ops%xc2
    po2%y = tri_ops%yc2
- ! if (verbose) write(*,*) 'tcircle - xc,yc :',xc,yc
+ ! if (verbose==3) write(*,*) 'tcircle - xc,yc :',xc,yc
    tri_ops%a2 = x_entering(po1,po2)
 
    return 
@@ -662,7 +645,7 @@ end function calc_trilat
 subroutine calc_tcircle(tri_ops,r3,t3,verbose)
    type(ops) :: tri_ops
    real(pr) :: r3,t3
-   logical :: verbose
+   integer(pin) :: verbose
 
    !use type ops
    ! d13,d23,d12 ! current (?) edge lengths
@@ -690,8 +673,8 @@ subroutine calc_tcircle(tri_ops,r3,t3,verbose)
    !   if (tri_ops%a1 < -epsilon(tri_ops%a1) .or. tri_ops%a1 > tri_ops%d12) then
       if (tri_ops%a2 < -water_level(tri_ops%a2) .or. tri_ops%a2-tri_ops%d12 > water_level(tri_ops%a2)) then
          t3=infinity 
-   !    if (verbose) write(*,*) 'dcircle - a : ',a
-   !    if (verbose) write(*,*) 'dcircle - a outside range'
+   !    if (verbose==3) write(*,*) 'dcircle - a : ',a
+   !    if (verbose==3) write(*,*) 'dcircle - a outside range'
         return
      endif
 
@@ -706,7 +689,7 @@ subroutine calc_tcircle(tri_ops,r3,t3,verbose)
      endif
      t3 = ta1 + d_a1_3/tri_ops%v1
 
-     if (verbose) then
+     if (verbose==3) then
         write(*,*) "d_c2_a1,tri_ops%k1,d_c2_a1-tri_ops%k1",d_c2_a1,tri_ops%k1,d_c2_a1-tri_ops%k1
         write(*,*) " tri_ops%t1,(r3-tri_ops%k1),t3",tri_ops%t1,(r3-tri_ops%k1),t3
         write(*,*) "tri_ops%t1,tri_ops%t2",tri_ops%t1,tri_ops%t2
