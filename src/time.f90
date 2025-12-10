@@ -1,3 +1,9 @@
+! main module to compute first arrival time on a 2D mesh
+! using a fast marching trilateration method
+! Version January 2026
+! Actions :
+! - Homogeneization of the code with trilat-distance module
+! - remplacement of FVsNodes and EtoE by ntoc and nton lists
 module time
  use generic
  use LAT_mesh
@@ -26,23 +32,32 @@ end type ops
 contains
 
 !########################################################
-subroutine timeonevsall2dV2(amesh,adiff)
+subroutine timeonevsall2d(amesh,velocity,time,adiff)
   use LAT_mesh
   use LAT_time
   use lists
-  use distance
-! given a mesh (amesh) and velocities (velocity) defined on
+! given a mesh (amesh) and velocities (velocity) defined in
 ! the mesh cells, timeonevsall2d computes the first arrival
 ! time on the mesh (time) from all the nodes in time array which
 ! have a finite time (i.e. not infinite)
+! the adiff structure should be also contained inside trilat_distance module
+! taking care also of the fast switch for diffraction
+
+! inout variables
+
+  type(mesh) :: amesh ! the mesh structure
   type(diff) :: adiff
-  type(mesh) :: amesh
-! new variables and cleanup
+  real(pr), dimension(amesh%Nnodes) :: time ! the time array 
+  real(pr), dimension(amesh%Ncells) :: velocity ! velocity defined on cells
+
+! local variables
+
   integer(pin) :: i
   logical, dimension(amesh%Nnodes) :: inthelist
   logical :: begin
   type(listn), pointer :: ntodo
   type(listn), pointer :: pcur
+  type(liste), pointer :: pcure
   type(listn), pointer :: pmin
   integer(pin) :: toggle
   logical :: hasbeenupdated
@@ -67,15 +82,14 @@ subroutine timeonevsall2dV2(amesh,adiff)
   logical, dimension(amesh%Nnodes) :: checksecondary
   logical :: logic_contrast,logic_diff,logic_conic
   integer(pin), parameter :: waitdiffthres=25
-  integer(pin) :: icounter
   logical :: reloop,firstrun,diffoccur
 
 ! ntoc is not used anymore in this version. We use FVsNodes instead
 
 !   verbose=0
 
-! initialize the secondary distance array
-  secondary_time = time   ! distarray = secondary sources
+! initialize the secondary array
+  secondary_time = time   !secondary sources
   checksecondary=.true.   !assume all points have been checked
 !  checksecondary=.false.  ! assume no points have been checked
 
@@ -135,38 +149,34 @@ subroutine timeonevsall2dV2(amesh,adiff)
 !    initilisation of the sweep loop
       hasbeenupdated=.true.
       toggle=2
-      icounter = 0
       do while (hasbeenupdated)
         hasbeenupdated=.false.
-        icounter = icounter+1
         toggle=3-toggle   !    toggle variable swap state between 1 and 2 at each sweep
         if (verbose == 1) then
           if (toggle==1) write(*,*) 'sweep forward'
           if (toggle==2) write(*,*) 'sweep backward'
         endif
-        
-!    alternating the loop direction on FVsNodes(pmin%idnode,:,1) which represents the set
-!    of nodes attached to pmin%idnode when FVsNodes is not null.
+! tuning back to a node list reading nton (node to node)
+! warning the distance code relies on a node to cell (ntoc) list meanwhile
+! this time version uses a node to node list 
         if (toggle==1) then
-           kn_start = 1
-           kn_end = amesh%Nnodes
-           loopdirection=1
+           pcure=>nton(pmin%idnode)%ptr
         else
-            kn_start = amesh%Nnodes
-            kn_end = 1
-           loopdirection=-1
+           pcure=>last
         endif
-
-!    node list reading (was a list reading of ntoc in the previous version)
-        do kn = kn_start,kn_end,loopdirection           
-!          cycle if the node kn is not attached to pmin%idnode
-           if (amesh%FVsNodes(pmin%idnode,kn,1)==0) cycle ! nodes pmin and kn are not linked in the mesh
+! going through all the nodes connected to pmin%idnode
+        do while (associated(pcure)) ! pcure is a pointer to a node
            
+! the -1 is to shift the fortran index to the paraview index convention           
            if (verbose == 1) write(*,*) '####################################################'
-           if (verbose == 1) write(*,*) 'working to extent node ',pmin%idnode-1,' to ', kn-1
-
+           if (verbose == 1) write(*,*) 'working to extent node ',pmin%idnode-1,' to ', pcure%idnode-1
+           kn=pcure%idnode
+           if (verbose == 1) write(*,*) 'considering node ',kn-1
+! cell index in nton are already stored in cellonedge
+! integer(pin), dimension(2) :: cellonedge
 !          definition of the cell indexes and node indexes on both side of the edge
-           idcell=amesh%FVsNodes(pmin%idnode,kn,:) ! idcell(2) is the 2 cell indexes on each side of the edge (pmin%idnode,kn)
+           idcell=pcure%cellonedge ! array of size 2
+! idnode are the third nodes of each cell
            idnode(1)=sum(amesh%cell(idcell(1),:))-kn-pmin%idnode ! sum of the node indexes of the cell minus the 2 known indexes
            if (idcell(2) == 0) then
               idnode(2)=0
@@ -179,7 +189,7 @@ subroutine timeonevsall2dV2(amesh,adiff)
 !     idnode(i) on the x-axis and kn in the semispace (y>0)
 
 !     common values before the inner loop on the two side cells
-           tri_ops%d13=donedge(amesh,pmin%idnode,kn)
+           tri_ops%d13=get_donedge(amesh,nton,pmin%idnode,kn)
            tri_ops%t1=secondary_time(pmin%idnode)
            tri_ops%k1=kappa(pmin%idnode)
 
@@ -206,8 +216,8 @@ subroutine timeonevsall2dV2(amesh,adiff)
            do i=1,2
               if (verbose == 2) write(*,*) "cell number : ",i,idcell(i)-1
               if (idcell(i) == 0) cycle
-              tri_ops%d12=donedge(amesh,pmin%idnode,idnode(i))
-              tri_ops%d23=donedge(amesh,idnode(i),kn)
+              tri_ops%d12=get_donedge(amesh,pmin%idnode,idnode(i))
+              tri_ops%d23=get_donedge(amesh,idnode(i),kn)
               lowercell=find_face_cell_v2(idcell(i),pmin%idnode,idnode(i),amesh%nNodes,amesh%FVsNodes)
               !lowercell=sum(amesh%FVsNodes(pmin%idnode,idnode(i),:))-idcell(i) Please test this alternative
               tri_ops%v1=velocity(idcell(i))
