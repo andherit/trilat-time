@@ -18,30 +18,32 @@ contains
 
 !###############################################################################
 subroutine compnton(amesh,nton)
-! 2024C the whole routine
-! compute a node to node array (nton). It is a node array. It is defined by an array
-! pointing at the first element of a node list (listd).
+! This version for trilat_time is different from the previous one used in trilat_distance.
+! We need here all the neighboring nodes, even those with idnode < idnode of the current node.
+!
+! The subroutine computes a node to node array (nton). It is a node array. It is
+! defined by an array pointing at the first element of a node list (liste).
 ! For the ith node in the array, the list represents all the nodes attached to this node.
-! In each element listd of the list at the ith node, the listd%idnode represents
+! In each element liste of the list at the ith node, the liste%idnode represents
 ! the id node j attached to i, listd%distance the distance between node i and j, 
 ! list%cellonedge(2) the two Id cell on each side of edge ij
 ! warning : but fortran does not understand pointer arrays, so I use a container.
 ! ntoc is not tecnically a pointer array but an array of container containing a
 ! pointer.
-! to avoid redundancy, the edge is always defined only once in the list of the 
-! minor Idnode of the edge. Thus the last element of the array nton is a void list.
+! The main loop over the cells is repeated twice: one to get all the edges attached
+! to the node idnode with idnode < current node idnode and one to complete the list
+! with the edges attached to the node idnode with idnode > current node idnode.
+! During the first loop, for each edge, the length of the edge and the neighboring
+! cells are computed. During the second loop, we need only the idnode of the other
+! node attached to the edge. 
 
   type(mesh) :: amesh
   type(containern), dimension(amesh%Nnodes) :: nton
 
-  type(liste), pointer :: pcur
+  type(liste), pointer :: pcur,pref
   integer(pin) :: i,j
   integer(pin) :: p1,p2,ponnodarray,othernode
   logical :: foundit
-
-! 2024Cdebug
-!  integer(pin), dimension(10) :: hist
-!  integer(pin) :: ibor
 
   if (verbose==1) write(*,*) 'entering in compnton'
 ! initialisation at null
@@ -64,6 +66,7 @@ subroutine compnton(amesh,nton)
 ! if the list is void (null), allocate the space in memory
            allocate(nton(ponnodarray)%ptr)
            pcur=>nton(ponnodarray)%ptr
+           nullify(pcur%previous)
         else
 ! looking for the edge inside the list
            pcur=>nton(ponnodarray)%ptr
@@ -86,6 +89,7 @@ subroutine compnton(amesh,nton)
 ! if the edge is not listed, add an element to the list. NB At this point, pcur
 ! points to the last element of the list.
            allocate(pcur%next)
+           pcur%next%previous=>pcur
            pcur=>pcur%next
         endif
 ! compiling the attribute of the edge
@@ -94,32 +98,73 @@ subroutine compnton(amesh,nton)
         pcur%cellonedge(1)=i
         pcur%cellonedge(2)=0
         pcur%donedge=comp_donedge(amesh,ponnodarray,othernode)
+        pcur%ref=>pcur
      enddo
   enddo
-!  do i=1,10                            ! 2024Cdebug
-!     hist(i)=0                         ! 2024Cdebug
-!  enddo                                ! 2024Cdebug
-!  do i=1,amesh%Nnodes
-!     ibor=0
-!     pcur=>nton(i)%ptr
-!     do while(associated(pcur))
-!        ibor=ibor+1  
-!        pcur=>pcur%next
-!     enddo
-!     ibor=ibor+1
-!     hist(ibor)=hist(ibor)+1
-!  enddo
-!  do i=1,10
-!     write(*,*) i-1,hist(i)
-!  enddo
-!  write(*,*) 'sum is : ',sum(hist)
+! second loop on the cells to complete the lists
+   do i=1,amesh%Ncells
+! for each cell, loop on the nodes forming the cell
+      do j=1,3
+! define the index in the cell defining the edge
+         p1=j
+         p2=j+1
+         if (p2 > 3) p2=1
+! define the node index using the large node index of the edge
+         ponnodarray=max(amesh%cell(i,p1),amesh%cell(i,p2))
+         othernode=amesh%cell(i,p1)+amesh%cell(i,p2)-ponnodarray
+! define a pointer at the beginning of the list of the edges attached to ponnodarray
+         pref=>nton(othernode)%ptr
+         do while(associated(pref))
+            if (pref%idnode == ponnodarray) exit
+            pref=>pref%next
+         enddo
+         if (.not.associated(pref)) stop "compnton: missing canonical edge reference"
+         if (.not.associated(nton(ponnodarray)%ptr)) then
+! if the list is void (null), allocate the space in memory
+            allocate(nton(ponnodarray)%ptr)
+            pcur=>nton(ponnodarray)%ptr
+            nullify(pcur%previous)
+         else
+! looking for the edge inside the list
+            pcur=>nton(ponnodarray)%ptr
+            foundit=.false.
+            do while(.true.)
+               foundit=(pcur%idnode==othernode)
+               if (foundit) exit
+               if (associated(pcur%next)) then
+                  pcur=>pcur%next
+                  cycle
+               endif
+               exit
+            enddo
+! if the edge already exists, we directly go to the next edge
+            if (foundit) cycle
+! if the edge is not listed, add an element to the list. NB At this point, pcur
+! points to the last element of the list.
+            allocate(pcur%next)
+            pcur%next%previous=>pcur
+            pcur=>pcur%next
+         endif
+! reverse-direction entries are neighbor-only and point to the canonical edge record
+         nullify(pcur%next)
+         pcur%idnode=othernode
+         pcur%ref=>pref
+      enddo
+   enddo
 end subroutine compnton
 !###############################################################################
-function get_donedge(amesh,nton,p1,p2)
+! this function get_donedge is the generalization of the function in trilat_distance.
+! this version not only retrieves the distance between two nodes but also retrieves,
+! if asked through the optional arguments, the two cells on each side of the edge
+! through a dimension(2) array.
+! If the edge does not exist, the function stops the program.
+!###############################################################################  
+function get_donedge(amesh,nton,p1,p2,cellonedge)
 
   type(mesh) :: amesh
   type(containern), dimension(amesh%Nnodes) :: nton
-  integer(pin) :: p1,p2
+  integer(pin), intent(in) :: p1,p2
+  integer(pin), dimension (2), optional, intent(out) :: cellonedge
   real(pr) :: get_donedge
 
   type(liste), pointer :: pcur
@@ -131,6 +176,7 @@ function get_donedge(amesh,nton,p1,p2)
   do while(associated(pcur))
      if (pcur%idnode==othernode) then
         get_donedge=pcur%donedge
+        if (present(cellonedge)) cellonedge=pcur%cellonedge
         return
      endif
      pcur=>pcur%next

@@ -23,7 +23,9 @@ type liste
   integer(pin) :: idnode
   real(pr) :: donedge
   integer(pin), dimension(2) :: cellonedge
+  type(liste), pointer :: ref
   type(liste), pointer :: next
+  type(liste), pointer :: previous
 end type liste
 
 type containern
