@@ -4,7 +4,7 @@ FC = gfortran
 #FFLAGS ?= -O2 -Wall -Wextra
 FFLAGS ?= -O3 -Wall -Wextra -march=native -ffast-math -unroll-loops
 
-SRC_DIR := ../../src
+SRC_DIR := ../../../src
 OBJ_DIR := build/obj
 MOD_DIR := build/mod
 
