@@ -153,6 +153,25 @@ subroutine compnton(amesh,nton)
    enddo
 end subroutine compnton
 !###############################################################################
+subroutine free_nton(nton)
+! Deallocates all linked-list nodes inside the nton array.
+! The liste nodes are pointer-allocated (not allocatable) so Fortran does NOT
+! free them automatically when nton goes out of scope — must be called explicitly.
+  use lists
+  type(containern), dimension(:), intent(inout) :: nton
+  type(liste), pointer :: pcur, pnext
+  integer(pin) :: i
+  do i = 1, size(nton)
+    pcur => nton(i)%ptr
+    do while (associated(pcur))
+      pnext => pcur%next
+      deallocate(pcur)
+      pcur => pnext
+    enddo
+    nullify(nton(i)%ptr)
+  enddo
+end subroutine free_nton
+!###############################################################################
 ! this function get_donedge is the generalization of the function in trilat_distance.
 ! this version not only retrieves the distance between two nodes but also retrieves,
 ! if asked through the optional arguments, the two cells on each side of the edge

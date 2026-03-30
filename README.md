@@ -1,65 +1,144 @@
-<h1 align=center>First arrival time through trilaterations</h1>
+# Trilat-time
 
-# Why ?
+## First-arrival traveltime computation on unstructured triangular meshes
 
-Rapidly estimating how long seismic or tsunami waves take to travel through complex environments
-is important for many problems in the geosciences. We present a new hybrid method that uses triangular
-meshes to calculate wave travel times for a given velocity model. The triangular approach performs
-better when the boundaries of the model or the interfaces between materials are irregular or curved. 
+### Why?
 
-From Murphy and Herrero (2026) - Submitted to Seismica.
+Rapidly estimating traveltimes of seismic or tsunami waves in heterogeneous media is a central problem in geophysics. Trilat-time provides a hybrid method based on triangular meshes that is particularly well-suited for complex geometries (curved interfaces, irregular boundaries).
 
-# What is it exactly ?
+The method is described in:
 
-The main kernel is a set of Fortran modules. With different examples, we
-show how to use the code in different context, for instance using only
-fortran or only python using the associated wrapper or also with a
-mixed approach pre and post processing python for the meshes and 
-a fortran approach for the main computation
+**Murphy & Herrero (2026), submitted to Seismica**
 
-Keep in mind that by construction, today the code is slightly faster if it
-is used outside the wrapper.
+---
 
-# the main module
+## Overview
 
-The main module is `time.f90` and the main routine is called `timeonevsall`
+Trilat-time computes **first-arrival traveltimes** on 2D unstructured triangular meshes using a trilateration-based propagation scheme.
 
-In the directory `examples`, we present different models which allows you to understand how
-to call and initialize the variables. in each case, a `Makefile` is present
-to show how to compile the code.
+The project is centered on a **Fortran core solver**, with optional Python tools for preprocessing and visualization.
 
-On the fortran side, the call is
+Typical workflows:
+
+1. **Pure Fortran** (recommended for performance)
+2. **Hybrid** (Python for mesh generation, Fortran for computation)
+3. **Python wrapper** (ease of use, prototyping)
+
+---
+
+## Core solver (Fortran)
+
+### Entry point
 
 ```
-call timeonevsall2d(amesh,velocity,time,nton,adiff)
+call timeonevsall2d(amesh, velocity, time, nton, adiff)
 ```
-where
 
-`amesh` is the mesh structure (in)
+### Arguments
 
-`velocity` is the velocity field defined on each cell of the mesh (in)
+* `amesh` : mesh structure (nodes + triangular connectivity)
+* `velocity` : velocity defined per cell
+* `time` : nodal traveltime array (input/output)
+* `nton` : node-to-node connectivity structure (must be precomputed)
+* `adiff` : diffraction structure
 
-`time` is the first arrival time defined on each node of the mesh (inout)
+### Required preprocessing
 
-`nton` is the edge array and their attributes to be computed before (in)
-
-`adiff` is the diffraction structure defining is the diffraction mode is on and where are the diffractors.
-
-On the python side, with the wrapper, we trasform the use in a function
 ```
-traveltime = tritime2d(x, y, z, cells, cell_vel, initial_travel, diff_nodes, fast=True)
+call compnton(amesh, nton)
 ```
-Because we cannot use a fortran structure like `amesh` in the python code, the
-wrapper splits the structures for the call where
 
-`x, y, z` are the positions of the nodes in an array format
+### Memory management
 
-`cells` are the definition of the cells through their node indexes
+```
+call free_nton(nton)
+```
 
-`cell_vel` is the velocity array
+---
 
-`initial_travel` is the initial time array
+## Python interface (optional)
 
-`diff_nodes` is the array of the diffraction nodes 
+A Python wrapper is provided for convenience and rapid testing.
 
-`fast=True`indicates if the code take into account the diffraction
+```
+traveltime = tritime2d(x, y, z, cells, cell_vel, initial_time, diff_nodes=None, fast=False)
+```
+
+### Notes
+
+* The wrapper reconstructs internal Fortran structures at each call
+* This introduces overhead compared to pure Fortran usage
+* It is therefore best suited for:
+
+  * prototyping
+  * testing
+  * mesh preprocessing pipelines
+
+### Diffraction mode
+
+* `fast = True`  → fast mode (reduced diffraction modeling)
+* `fast = False` → full mode (more accurate, slower)
+
+---
+
+## Mesh and velocity
+
+Meshes can be:
+
+* generated externally (e.g. Gmsh)
+* or constructed directly in Fortran (examples provided)
+
+Velocity is defined **per cell**.
+
+---
+
+## Examples
+
+See `examples/`:
+
+* Two-layer model
+* Diffraction example
+* Ramp geometry
+* Velocity gradient
+
+These illustrate both Fortran and Python workflows.
+
+---
+
+## Build
+
+### Fortran
+
+Each example directory provides a `Makefile`.
+
+### Python wrapper
+
+```
+cd examples/python
+make
+```
+
+---
+
+## Notes for advanced users
+
+* The solver computes **first-arrival times only**
+* Performance is optimal when used directly in Fortran
+* Reusing precomputed structures (e.g. `nton`) can significantly reduce runtime in repeated simulations
+
+---
+
+## Summary
+
+Trilat-time provides:
+
+* A robust solver for complex geometries
+* A high-performance Fortran implementation
+* Flexible workflows depending on user needs
+
+---
+
+## License / Citation
+
+(To be completed upon publication.)
+
