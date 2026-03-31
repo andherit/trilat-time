@@ -138,7 +138,15 @@ Trilat-time provides:
 
 ---
 
-## License / Citation
+## License
 
-(To be completed upon publication.)
+MIT License
 
+## Citation
+
+If you use this code, please cite:
+
+Murphy S. and Herrero A., *Trilateration Methods for Robust Time Estimation on Coarse Unstructured Surface Meshes*, submitted to Seismica, 2026.
+
+Software release:
+trilat-time v0.9, DOI:
