@@ -1,0 +1,51 @@
+# Makefile for tritime2d.so
+# ─── user settings ────────────────────────────────────────────────────────────
+
+# Compiler: 'ifx' or 'gfortran'
+COMPILER ?= gfortran
+
+# Path to Fortran source files (relative to this makefile, or absolute)
+SRC ?= ../../src
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+ifeq ($(COMPILER), ifx)
+  FC      = ifx
+  FCFLAGS = -O3 -xHost -ipo -no-prec-div -fp-model fast=2 \
+            -unroll -qopt-prefetch=4 -inline-forceinline
+else ifeq ($(COMPILER), gfortran)
+  FC      = gfortran
+  FCFLAGS = -O3 -march=native -ffast-math -funroll-loops
+else
+  $(error COMPILER must be 'ifx' or 'gfortran')
+endif
+
+FCFLAGS_PIC = $(FCFLAGS) -fPIC
+
+SRCS = generic lists LAT_mesh LAT_time time wrapper
+OBJS = $(addsuffix _pic.o, $(SRCS))
+
+################################################
+all: _tritime2d.so
+
+_tritime2d.so: $(OBJS)
+	$(FC) $(FCFLAGS_PIC) -shared -o $@ $^
+
+################################################
+# Pattern rule: compile $(SRC)/X.f90 -> X_pic.o
+# -I. ensures .mod files generated here are found by later compilations
+%_pic.o: $(SRC)/%.f90
+	$(FC) $(FCFLAGS_PIC) -I. -c $< -o $@
+
+################################################
+# Explicit module dependencies (correct build order, safe with make -j)
+lists_pic.o:          generic_pic.o
+LAT_mesh_pic.o:       generic_pic.o lists_pic.o
+LAT_time_pic.o:       generic_pic.o LAT_mesh_pic.o
+time_pic.o:           generic_pic.o LAT_mesh_pic.o LAT_time_pic.o lists_pic.o
+wrapper_pic.o:        generic_pic.o LAT_mesh_pic.o LAT_time_pic.o lists_pic.o \
+                      time_pic.o
+
+################################################
+clean:
+	rm -f *.o *.mod *.i90
