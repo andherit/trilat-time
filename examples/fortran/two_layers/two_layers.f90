@@ -46,6 +46,8 @@ implicit none
          error_time(i)=100._pr*(traveltime(i)-theo_time(i))/theo_time(i)
       endif
    enddo
+! freeing the memory of the nton array
+   call free_nton(nton)
 ! dumping the result in ascii VTK
    write(*,*) 'dumping time in result.vtk'
    open(10,file='result.vtk',form = 'formatted')
