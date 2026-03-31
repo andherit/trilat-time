@@ -145,3 +145,55 @@ def init_traveltime(sx, sz, x, y, cells, cell_vel, inf=1.e32):
         initial_time[cells[i]] = t
 
     return initial_time
+
+
+def write_vtk(x, y, z, cells, velocity, traveltime, filename):
+    """
+    Write an unstructured triangular mesh with cell velocity and node traveltime
+    fields to a VTK legacy ASCII file (POLYDATA format).
+
+    Parameters
+    ----------
+    x, y, z    : array-like, node coordinates
+    cells      : array-like of shape (ncells, 3), triangle node indices
+    velocity   : array-like of length ncells, cell-centred velocity
+    traveltime : array-like of length nnodes, node traveltime
+    filename   : str, output file path
+    """
+    nnodes = len(x)
+    ncells = len(cells)
+
+    with open(filename, "w") as f:
+        # --- header ---
+        f.write("# vtk DataFile Version 2.0\n")
+        f.write("TravelTime\n")
+        f.write("ASCII\n")
+        f.write("DATASET POLYDATA\n")
+
+        # --- nodes ---
+        f.write("POINTS %d double\n" % nnodes)
+        for i in range(nnodes):
+            f.write("%f %f %f\n" % (x[i], y[i], z[i]))
+        f.write("\n")
+
+        # --- connectivity ---
+        f.write("POLYGONS %d %d\n" % (ncells, ncells * 4))
+        for i in cells:
+            f.write("3 %d %d %d\n" % (i[0], i[1], i[2]))
+        f.write("\n")
+
+        # --- cell data: velocity ---
+        f.write("CELL_DATA %d\n" % ncells)
+        f.write("SCALARS velocity double 1\n")
+        f.write("LOOKUP_TABLE default\n")
+        for i in range(ncells):
+            f.write("%f\n" % velocity[i])
+        f.write("\n")
+
+        # --- point data: traveltime ---
+        f.write("POINT_DATA %d\n" % nnodes)
+        f.write("SCALARS time double 1\n")
+        f.write("LOOKUP_TABLE default\n")
+        for i in range(nnodes):
+            f.write("%f\n" % traveltime[i])
+        f.write("\n")

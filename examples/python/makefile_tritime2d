@@ -2,10 +2,10 @@
 # ─── user settings ────────────────────────────────────────────────────────────
 
 # Compiler: 'ifx' or 'gfortran'
-COMPILER = gfortran
+COMPILER ?= gfortran
 
 # Path to Fortran source files (relative to this makefile, or absolute)
-SRC = .
+SRC ?= ../../src
 
 # ──────────────────────────────────────────────────────────────────────────────
 
