@@ -73,7 +73,7 @@ write(*,*) 'diffraction D2   = ', adiff%nodes(2)-1
 ! dump result in ascii VTK
    write(*,*) 'dumping time in result.vtk'
    open(10, file='result.vtk', form='formatted')
-   call dumpmeshvtk(10, amesh)
+   call dumpmeshvtk(10, amesh, 'ramp test')
    call dumpcellattributevtk(10, amesh, velocity,    'velocity',   .true.)
    call dumpnodeattributevtk(10, amesh, traveltime,  'time',       .true.)
    call dumpnodeattributevtk(10, amesh, theo_time,   'theo_time',  .false.)

@@ -13,14 +13,19 @@ implicit none
 contains
 
 !###############################################################################
-subroutine dumpmeshvtk(dev,amesh)
+subroutine dumpmeshvtk(dev,amesh,title)
   type(mesh) :: amesh
   integer(pin) :: dev
+  character*(*) , optional :: title
 
   integer(pin) :: i,j
 
   write(dev,'(a26)') '# vtk DataFile Version 2.0'
-  write(dev,'(a8)') 'distance'
+  if (present(title)) then
+     write(dev,'(a)') trim(title)
+  else
+     write(dev,'(a8)') 'my mesh'
+  endif
   write(dev,'(a5)') 'ASCII'
   write(dev,'(a16)') 'DATASET POLYDATA'
   if( pr == 4) then
