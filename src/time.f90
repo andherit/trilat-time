@@ -63,6 +63,7 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
   use LAT_mesh
   use LAT_time
   use lists
+  use time_debug
 ! given a mesh (amesh) and velocities (velocity) defined in
 ! the mesh cells, timeonevsall2d computes the first arrival
 ! time on the mesh (time) from all the nodes in time array which
@@ -106,7 +107,7 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
   integer(pin) :: idiff,waitfordiff,diff_counter
   real(pr), dimension(amesh%Nnodes) :: secondary_time
   logical, dimension(amesh%Nnodes) :: checksecondary
-  integer(pin), parameter :: waitdiffthres=25
+  integer(pin), parameter :: waitdiffthres=500
   logical :: reloop,firstrun,diffoccur
 
 ! this version uses only the node-to-node list nton
@@ -156,7 +157,6 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
      sedge = infinity
      origidnode = -1._pr
   endif
-
   secondary_time = time   !secondary sources
   checksecondary=.true.   !assume all points have been checked
 !  checksecondary=.false.  ! assume no points have been checked
@@ -214,10 +214,8 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
 !      if (verbose == 2) call printlist(ntodo)
        if (verbose == 1) call printlist(ntodo)
        call lookformin(ntodo,secondary_time,amesh%Nnodes,pmin)
-
        if (verbose == 1) write(*,*) 'propagating time from node #',pmin%idnode-1
        if (verbose == 2) write(*,*) 'its own time is :',time(pmin%idnode)
-
 !    initilisation of the sweep loop
       hasbeenupdated=.true.
       toggle=2
@@ -303,11 +301,19 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
               tri_ops%x3 = (tri_ops%d12**2._pr-tri_ops%d23**2._pr+tri_ops%d13**2._pr)/(2._pr*tri_ops%d12)
               tri_ops%y3 = sqrt(max(tri_ops%d13**2._pr-tri_ops%x3**2._pr,0._pr))
 
-!             do we compute this operator on this cell ?
+! Operators decision tree for the current node/cell configuration
+! do we compute this operator on this cell ?
+! tedge is always computed as a reference
+! by default we compute all the operators.  
               do_tplane = .true.
               do_tface = .true.
               do_thead = .true. 
-            !   it_is_a_conic=.false.
+
+! killing the planar and conic operators in the diffraction reloops
+              if (.not.firstrun) then
+                  do_tplane = .false.
+                  do_thead = .false.
+              endif
 
 ! cell estimates only if idnode(i) has a finite time
             !   if (time(idnode(i)) == infinity) cycle !!!!! check it
@@ -351,13 +357,21 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
 
                         
 ! There is a conic propagation in the lower cell
-               if (tri_ops%v1 < tri_ops%v2 ) then 
-                    if (abs(abs(tri_ops%t2-tri_ops%t1)*tri_ops%v2-tri_ops%d12) <= water_level(tri_ops%d12)) then 
-                     do_tface = .false.
-                     do_thead = .false. 
-                     do_tplane = .true. 
+               if (tri_ops%v1 < tri_ops%v2 .and. firstrun) then
+! The conic propagation is shut down close the source, i.e. t1 = 0. or t2 = 0.
+                  if (tri_ops%t1 > water_level(1._pr) .and. &
+       tri_ops%t2 > water_level(1._pr)) then
+                        if (abs(abs(tri_ops%t2-tri_ops%t1)*tri_ops%v2-tri_ops%d12) &
+       <= water_level(tri_ops%d12)) then 
+                           do_tface = .false.
+                           do_thead = .false. 
+                           do_tplane = .true.
+                        endif 
                   endif
                endif
+
+! reviving the face operator for the reloops on diffraction points
+               if (.not.firstrun) do_tface = .true.
 
 ! We can compute a curved operator but the circles do not cross !
                if (do_thead.or.do_tface)  then  
@@ -366,6 +380,8 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
                      do_thead = .false.
                   endif
                endif
+
+! Launching in order of preference : tface,thead,tedge,tplane
 
 ! curved operators                
                if (do_tface) call calc_tcircle(tri_ops,kface(i),tface(i),verbose)
@@ -473,10 +489,9 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
 ! diff case and no diffraction has been detected yet
    if (.not.firstrun.and..not.diffoccur) then
 
-      if (secondary_time(pmin%idnode) < time(pmin%idnode)) then
-         ! if (secondary_time(pmin%idnode)+time(idiff) < time(pmin%idnode)) then
+      if (secondary_time(pmin%idnode)+time(idiff) < time(pmin%idnode)) then
 !   diffraction detected
-         write(*,*) 'diffraction detected '
+         if (verbose == 1) write(*,*) 'diffraction detected '
          diffoccur=.true.
        else
 !   no diffraction
@@ -510,33 +525,25 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
     if (firstrun) then
          time = secondary_time
          ! diff_counter = 0   ! counter for number of diffraction points
-         write(*,*) 'first traveltime computation '
+         if (verbose == 1) write(*,*) 'first traveltime computation '
     else
-         write(*,*) 'next traveltime computation '
-
-        if (diffoccur) then
+         if (verbose == 1) write(*,*) 'next diffraction computation '
+         if (diffoccur) then
 ! a secondary diff has occured
           do i=1,amesh%Nnodes
-             time(i)=min(secondary_time(i),time(i))
-            !  time(i)=min(secondary_time(i)+time(idiff),time(i))
+             time(i)=min(secondary_time(i)+time(idiff),time(i))
           enddo
         endif
-     endif
+    endif
 
    idiff=nextdiffid(time,amesh%Nnodes,checksecondary)
-! second case of general exit : all the choosen secondary source have been investigated.
-   !  diff_counter = diff_counter+1
-   !  if (diff_counter > adiff%NdiffNodes) then
-   !    reloop=.false.
-   !    cycle
-   ! endif
-   ! idiff = adiff%nodes(diff_counter)
-   write(*,*) 'diffraction points considered    ',idiff 
+    
 !  second case of general exit : all the potential secondary source have been investigated.
     if (idiff == 0) then
         reloop=.false.
         cycle
      endif
+  if (verbose == 1) write(*,*) 'diffraction points considered    ',idiff
 ! preparation for the next loop
     checksecondary(idiff)=.true.
     waitfordiff=waitdiffthres    ! reset counter for diffraction
@@ -552,7 +559,7 @@ subroutine timeonevsall2d(amesh,velocity,time,nton,adiff)
     secondary_time=infinity
     kappa(idiff) = 0._pr
     mode(idiff) = 1
-    secondary_time(idiff) = time(idiff) !0._pr
+    secondary_time(idiff) = 0._pr
     firstrun=.false.
    enddo ! end reloop section
 

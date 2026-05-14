@@ -1,0 +1,14 @@
+# Build artifacts
+build/
+*.o
+*.mod
+
+# Executables
+two_layers
+ramp
+
+# Generated VTK results
+result.vtk
+
+# Local Codex metadata
+.codex

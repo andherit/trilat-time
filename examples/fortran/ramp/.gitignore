@@ -1,0 +1,5 @@
+build/
+ramp
+result.vtk
+__pycache__/
+*.pyc

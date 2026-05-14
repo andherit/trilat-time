@@ -8,7 +8,7 @@ SRC_DIR := ../../../src
 OBJ_DIR := build/obj
 MOD_DIR := build/mod
 
-TARGET := two_layers
+TARGET := ramp
 
 GENERIC_SRC  := $(SRC_DIR)/generic.f90
 LISTS_SRC    := $(SRC_DIR)/lists.f90
@@ -17,7 +17,7 @@ LAT_TIME_SRC := $(SRC_DIR)/LAT_time.f90
 TIME_DEBUG_SRC := $(SRC_DIR)/time_debug.f90
 TIME_SRC     := $(SRC_DIR)/time.f90
 IOMOD_SRC    := $(SRC_DIR)/iomod.f90
-MAIN_SRC     := two_layers.f90
+MAIN_SRC     := ramp.f90
 
 GENERIC_OBJ  := $(OBJ_DIR)/generic.o
 LISTS_OBJ    := $(OBJ_DIR)/lists.o
@@ -26,7 +26,7 @@ LAT_TIME_OBJ := $(OBJ_DIR)/LAT_time.o
 TIME_DEBUG_OBJ := $(OBJ_DIR)/time_debug.o
 TIME_OBJ     := $(OBJ_DIR)/time.o
 IOMOD_OBJ    := $(OBJ_DIR)/iomod.o
-MAIN_OBJ     := $(OBJ_DIR)/two_layers.o
+MAIN_OBJ     := $(OBJ_DIR)/ramp.o
 
 OBJS := \
 	$(GENERIC_OBJ) \

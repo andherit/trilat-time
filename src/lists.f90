@@ -117,7 +117,7 @@ subroutine printlist(alist)
   pcur=>alist
   do while (associated(pcur))
 !     write(*,'(i5,$)') pcur%idnode
-     write(*,'(i5,$)') pcur%idnode-1
+     write(*,'(i8,1x,$)') pcur%idnode-1
      pcur=>pcur%next
   enddo
   write(*,*)
