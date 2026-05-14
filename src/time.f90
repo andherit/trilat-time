@@ -999,58 +999,6 @@ function find_face_cell(cell_no,n1,n2,n,Edge)
    endif
    return
  end function find_face_cell_v2
- !###############################################################################
-subroutine calc_theory(amesh,ttheory)
-   type(mesh) :: amesh
-   real(pr),allocatable, dimension(:) ::ttheory
-   real(pr) :: x,y,layer_depth,sx,sy,v1,v2,x1,x2,ddx,theta_c
-   real(pr) :: x_cross, tmin,t_test,conic_time
-   integer(pin) :: i
-   logical :: not_found
-
-   layer_depth = 3000._pr 
-   sx = 5000._pr
-   sy = 1500._pr
-   v1 = 1000._pr
-   v2 = 3000._pr
-   theta_c = asin(v1/v2)
-   ddx = 1._pr
-
-   allocate(ttheory(amesh%Nnodes))
-   ttheory = 0._pr
-   do i=1,amesh%Nnodes
-      x = amesh%px(i)
-      y = amesh%py(i)
-   ! direct wave 
-      if (y <= layer_depth) then
-         ttheory(i) = sqrt((x-sx)**2._pr+(y-sy)**2._pr)/v1
-         x1 = (layer_depth-sy)*tan(theta_c)
-         x2 = (layer_depth-y)*tan(theta_c)   
-         if (abs(x-sx) > x1+x2) then 
-            conic_time = (2._pr*layer_depth-sy-y)/v1/cos(theta_c)+(abs(x-sx)-x1-x2)/v2
-            if (conic_time < ttheory(i)) then 
-               ttheory(i) = conic_time 
-            endif
-         endif
-      else
-   ! refracted wave 
-         x_cross = 0._pr
-         tmin = sqrt((x-sx)**2+(y-layer_depth)**2)/v2+(layer_depth-sy)/v1
-         not_found = .true.
-         do while (not_found)
-            x_cross = x_cross+ddx
-            t_test = sqrt((abs(x-sx)-x_cross)**2+(y-layer_depth)**2)/v2+ sqrt(x_cross**2._pr+(layer_depth-sy)**2._pr)/v1
-            if (t_test < tmin) then 
-                 tmin = t_test
-            else
-                not_found = .false.
-            endif
-         end do
-         ttheory(i) = tmin
-      endif
-   enddo 
-return 
-end subroutine calc_theory 
 !#########################################################
 function nextdiffid(time,n,checksecondary)
 ! find the minimum value in dist skipping the vertex checked yet and returns
