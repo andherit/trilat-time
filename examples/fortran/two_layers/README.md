@@ -1,39 +1,82 @@
 # Two-layer example
 
-This example is a **didactical introduction** to the Fortran workflow of Trilat-time. It shows how to compute first-arrival traveltimes on a simple two-layer model, export the result and visualize the wavefronts.
+This example is a **didactical introduction** to the Fortran workflow of
+Trilat-time. A Python helper first constructs the mesh and physical model; the
+Fortran program then computes first-arrival traveltimes, exports the result,
+and makes it possible to visualize the wavefronts.
 
 ![Two-layer model and resulting wavefronts](two_layers.png)
 
-The figure shows a source located in the upper layer, a horizontal interface separating two constant-velocity media, and the resulting first-arrival field. In this example the upper layer is slower than the lower layer, so the solution contains both direct arrivals and refracted arrivals across the interface. The model is loaded from an ASCII VTK file containing the mesh, the cellwise velocity, and a theoretical traveltime field used for comparison.
+The figure shows a source located in the upper layer, a horizontal interface
+separating two constant-velocity media, and the resulting first-arrival field.
+The upper layer is slower than the lower layer, so the solution contains direct,
+refracted, and head-wave arrivals. The Python helper writes an ASCII VTK file
+containing the mesh, cellwise velocity, and an analytical traveltime field used
+for comparison.
 
 ---
 
 ## Purpose of this example
 
-This example is meant to illustrate the **minimal Fortran workflow** around the core solver:
+This example illustrates a complete preprocessing and solver workflow:
 
-1. load a mesh and the associated velocity model,
-2. define the source,
-3. initialize the solver,
-4. compute the traveltime field,
-5. compare with a reference solution,
-6. write the results to a VTK file.
+1. construct a conformal triangular mesh with Python and the Gmsh API,
+2. assign a velocity to each triangular cell,
+3. compute an analytical reference traveltime at each node,
+4. write the model to `input_velocity.vtk`,
+5. load the model and define the source in Fortran,
+6. compute the numerical traveltime field,
+7. compare it with the reference solution,
+8. write the results to `result.vtk`.
 
-The mesh-loading routine is only a support utility here. The important part is the sequence of calls around the solver.
-
----
-
-## Files
-
-* `two_layers.f90` : main Fortran program
-* `Makefile` : build instructions for the example
-* `input_velocity.vtk` : input mesh, velocity, and theoretical traveltime field
-* `two_layers.png` : illustration of the model and the computed wavefronts
-* `result.vtk` : output written by the example after execution
+Python is used only to prepare the input model. Traveltime propagation is
+performed by the Fortran solver.
 
 ---
 
-## How to run
+## Files included with the example
+
+* `create_two_layers.py`: Python helper that constructs the mesh and writes the
+  input model
+* `two_layers.f90`: main Fortran program
+* `Makefile`: build instructions for the Fortran program
+* `input_velocity.vtk`: generated mesh, cellwise velocity, and analytical
+  traveltime field
+* `two_layers.png`: illustration of the model and computed wavefronts
+
+---
+
+## Generate the input model with Python
+
+The helper requires Python 3, NumPy, and the Gmsh Python API. From this
+directory, run:
+
+```bash
+python3 create_two_layers.py
+```
+
+The script creates a `10000 m x 5000 m` rectangular domain divided by a
+horizontal interface at `3000 m`. It uses two Gmsh plane surfaces so that the
+triangular mesh conforms to the interface: no triangle crosses from one
+velocity layer into the other. The source at `(5000 m, 1500 m)` is embedded as
+a mesh node.
+
+The upper and lower layers have velocities of `1000 m/s` and `3000 m/s`,
+respectively. The script also evaluates the analytical two-layer solution at
+each node, including direct, refracted, and head-wave branches. It writes all
+of this information to `input_velocity.vtk`:
+
+* point coordinates and triangular connectivity,
+* cell data named `velocity`,
+* point data named `time`, containing the analytical reference solution.
+
+The domain dimensions, interface depth, source position, and target mesh size
+can be changed in the `main()` function of `create_two_layers.py`. If the layer
+velocities are changed, update both the mesh velocity assignments in
+`build_two_layer_conformal()` and the analytical velocities in `main()` so that
+the model and reference solution remain consistent.
+
+## Build and run the Fortran solver
 
 Compile the example with:
 
@@ -47,11 +90,19 @@ Then run:
 ./two_layers
 ```
 
-The program writes the numerical traveltime, the theoretical traveltime, and the relative error into `result.vtk`.
+The program writes the numerical traveltime, analytical traveltime, and
+relative error to `result.vtk`.
+
+### Generated output
+
+`result.vtk` is the final output of the example. It is generated when
+`./two_layers` runs, is excluded by the repository `.gitignore`, and is not
+part of the distributed example files. Regenerate it whenever you run the
+solver.
 
 ---
 
-## Step-by-step explanation
+## Fortran solver walkthrough
 
 ### 1. Build the physical setup
 
@@ -138,11 +189,14 @@ call cpu_time(finish_time)
 
 ### 7. Export and visualize the result
 
-After the traveltime field is computed, the program writes the results to a VTK file (`result.vtk`). The output typically includes:
+After the traveltime field is computed, the program writes `result.vtk`. The
+generated file contains:
 
 - mesh geometry,
 - cellwise velocity,
-- numerical traveltime.
+- numerical traveltime,
+- analytical traveltime,
+- relative error.
 
 You can inspect the result using **ParaView**:
 
@@ -180,6 +234,8 @@ Once this sequence is clear, more advanced examples mainly differ by:
 
 * This example uses a **source on a mesh node**.
 * It uses **fast mode** (`adiff%fast = .true.`), so no secondary diffraction loop is performed.
-* The theoretical reference field is read from the input VTK file and used only for validation.
+* The theoretical reference field generated by `create_two_layers.py` is read
+  from the input VTK file and used only for validation.
 * The mesh-loading routine is intentionally not the focus here; it is just a convenient way to provide a ready-to-run didactical case.
-* The mesh has been realized with `create_two_layers.py` which uses the gmsh api for python. 
+* Python constructs the input model; it is not used during traveltime
+  propagation.
