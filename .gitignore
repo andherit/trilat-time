@@ -6,6 +6,8 @@ build/
 # Executables
 two_layers
 ramp
+gradient
+mesh_gradient
 
 # Generated VTK results
 result.vtk

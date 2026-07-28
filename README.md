@@ -94,14 +94,39 @@ Velocity is defined **per cell**.
 
 ## Examples
 
-See `examples/`:
+The [`examples/`](examples/) directory contains standalone Fortran and
+notebook-based Python workflows.
 
-* Two-layer model
-* Diffraction example
-* Ramp geometry
-* Velocity gradient
+### Fortran
 
-These illustrate both Fortran and Python workflows.
+* [`two_layers`](examples/fortran/two_layers/) introduces the core Fortran
+  workflow with a source in a two-layer velocity model. A Python script
+  generates the initial mesh and model. Its
+  [README](examples/fortran/two_layers/README.md) explains the preprocessing,
+  solver calls, build, execution, and VTK output.
+* [`ramp`](examples/fortran/ramp/) demonstrates direct, refracted, head-wave,
+  and diffraction arrivals across a ramp-shaped velocity interface. A Python
+  script generates the initial mesh, model, and reference fields. See its
+  [README](examples/fortran/ramp/README.md) for preprocessing, build, and run
+  instructions.
+* [`gradient`](examples/fortran/gradient/) generates a triangular mesh and
+  vertical velocity gradient directly in Fortran, computes first-arrival
+  traveltimes, and compares them with the analytical solution. See its
+  [README](examples/fortran/gradient/README.md) for build and run instructions.
+
+### Python
+
+The [`examples/python/`](examples/python/) directory contains four Jupyter
+notebooks using the Python wrapper:
+
+* `Demo_Ramp.ipynb`
+* `Demo_Diffraction.ipynb`
+* `Demo_Velocity_Gradient.ipynb`
+* `Comparison_TwoLayer.ipynb`
+
+Compile the wrapper before running the notebooks; the
+[Python example instructions](examples/python/Readme.md) describe the required
+command and dependencies.
 
 ---
 
