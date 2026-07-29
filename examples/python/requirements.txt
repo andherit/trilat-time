@@ -1,0 +1,8 @@
+numpy
+gmsh
+matplotlib
+pandas
+seaborn
+
+# Note: eik2d is a locally compiled module (see Comparison_TwoLayer.ipynb)
+# and is not available via pip; it must be built manually.
