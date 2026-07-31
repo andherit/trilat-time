@@ -41,31 +41,27 @@ store them elsewhere:
 On successful compilation, a `_tritime2d.so` file will be generated in the current 
 directory. This is read by `tritime2d.py`, which is in turn imported into the notebooks using `import tritime2d as tt`.
 
-## Installing Podvin and Lecomte's subroutine
+## Podvin and Lecomte's traveltime solver
 
-The `PL` directory contains `Time_2d.c` and `time_2d.h`, Podvin and Lecomte's finite-difference 
-traveltime solver. Unlike `tritime2d`, this is called directly from `Comparison_TwoLayer.ipynb` as 
-a C shared library via Python's `ctypes` module, so it must be compiled separately (not through 
-`makefile_tritime2d`).
+The `Comparison_TwoLayer` notebook benchmarks TriTime2d against Podvin and
+Lecomte's finite-difference traveltime solver (Podvin & Lecomte, 1991; see
+References). Their source code is not distributed with this repository: we
+obtained a copy informally, and could not find an official public release
+from the original authors to redistribute or link to. If you wish to
+reproduce this comparison, you will need to source `Time_2d.c` and
+`time_2d.h` yourself.
 
-From the `PL` directory, compile with `gcc`:
+Once you have the source, compile it into a shared library and point
+`Comparison_TwoLayer.ipynb` at it:
 ```
-cd PL
 gcc -shared -fPIC -o time_2d.so Time_2d.c
 ```
-
-On Windows (e.g. with MinGW), build a `.dll` instead:
-```
-gcc -shared -o time_2d.dll Time_2d.c
-```
-
-Once compiled, set `so_file` in `Comparison_TwoLayer.ipynb` to the path of your compiled library, 
-e.g.:
 ```python
-so_file = r"PL/time_2d.so"
+so_file = r"path/to/time_2d.so"
 time_so = ctypes.CDLL(so_file)
 time_2d = time_so.time_2d
 ```
+(On Windows, build a `.dll` instead: `gcc -shared -o time_2d.dll Time_2d.c`.)
 
 # References
 Podvin, P. and Lecomte, I., (1991). Finite difference computation of traveltimes in very contrasted velocity models: a massively parallel approach and its associated tools, Geophysical Journal International,105(1), 271–284
