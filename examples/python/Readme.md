@@ -4,7 +4,7 @@ Here are a few notebooks with TriTime2d integrated into Python workflows. The ex
 are based on the Murphy and Herrero Seismica submission. Before running the demos, the 
 Python wrapper needs to be compiled first — instructions are provided below.
 
-The `Diffraction`,`Ramp`,`Velocity_Gradient` notebooks provide examples on how to construct meshes and calculate 
+The `Diffraction`, `Ramp`, `Velocity_Gradient` notebooks provide examples on how to construct meshes and calculate 
 traveltimes using _TriTime2d_ for a variety of different settings. A `requirements.txt` file is provided containing a list of python libraries. To install run:
 ```pip install -r requirements.txt  ```
 Once `_tritime2d.so` is compiled and python libraries installed, these notebooks will run. The `TwoLayer` notebook provides comparisons with other traveltime solvers, namely Mark Noble's Eik2d solver and Podvin and Lecomte's traveltime solver. As a result, additional libraries are required:
@@ -45,17 +45,13 @@ directory. This is read by `tritime2d.py`, which is in turn imported into the no
 
 The `Comparison_TwoLayer` notebook benchmarks TriTime2d against Podvin and
 Lecomte's finite-difference traveltime solver (Podvin & Lecomte, 1991; see
-References). Their source code is not distributed with this repository: we
-obtained a copy informally, and could not find an official public release
-from the original authors to redistribute or link to. If you wish to
-reproduce this comparison, you will need to source `Time_2d.c` and
-`time_2d.h` yourself.
-
-Once you have the source, compile it into a shared library and point
-`Comparison_TwoLayer.ipynb` at it:
+References). This is provided in the directory `PL`, this is not our code and if used should be referenced correctly - see comment at start of file. To compile into a shared library: 
 ```
 gcc -shared -fPIC -o time_2d.so Time_2d.c
+
 ```
+Then inside `Comparison_TwoLayer.ipynb` point to the location of the shared library:
+
 ```python
 so_file = r"path/to/time_2d.so"
 time_so = ctypes.CDLL(so_file)
