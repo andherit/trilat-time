@@ -14,3 +14,6 @@ result.vtk
 
 # Local Codex metadata
 .codex
+
+# enforce line endings across teams 
+echo "* text=auto" > .gitattributes
