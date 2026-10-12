@@ -116,17 +116,18 @@ notebook-based Python workflows.
 
 ### Python
 
-The [`examples/python/`](examples/python/) directory contains four Jupyter
-notebooks using the Python wrapper:
+The [`examples/python/`](examples/python/) directory contains four Jupyter notebooks using the Python wrapper:
 
-* `Demo_Ramp.ipynb`
-* `Demo_Diffraction.ipynb`
-* `Demo_Velocity_Gradient.ipynb`
-* `Comparison_TwoLayer.ipynb`
+* [`Ramp.ipynb`](examples/python/Ramp.ipynb) demonstrates direct, refracted, head-wave, and diffraction arrivals across a ramp-shaped velocity interface.
+* [`Diffraction.ipynb`](examples/python/Diffraction.ipynb) demonstrates
+  traveltime calculation around complex boundaries and diffraction points.
+* [`Velocity_Gradient.ipynb`](examples/python/Velocity_Gradient.ipynb)
+  computes traveltimes in a velocity gradient using an unstructured mesh and compares them with the analytical solution.
+* [`TwoLayer.ipynb`](examples/python/TwoLayer.ipynb) compares TriTime2d
+  against Mark Noble's Eik2d solver and Podvin & Lecomte's traveltime solver for a classic two-layer model.
 
-Compile the wrapper before running the notebooks; the
-[Python example instructions](examples/python/Readme.md) describe the required
-command and dependencies.
+Compile the wrapper before running the notebooks; see the
+[Python example instructions](examples/python/Readme.md) for the required build command and dependencies, and (for `TwoLayer.ipynb`) how to build the comparison solvers.
 
 ---
 
