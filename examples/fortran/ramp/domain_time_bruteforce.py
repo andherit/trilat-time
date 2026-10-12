@@ -76,14 +76,21 @@ def compute_traveltime_bruteforce(
     # Dense interface samplings
     I1_hr, I2_hr, I3_hr, s_I2 = build_interface_sampling_hr(x0, x1, xk1, yk1, xk2, yk2, ds=ds_hr)
 
-    # I1* = from xS to xCA1 on I1
+    # I1* = from xS to xCA1 on I1, used only to feed I2 / upper pseudo-conic
     xmin_i1s = min(sx, CA1[0])
     xmax_i1s = max(sx, CA1[0])
     mask_I1s = (I1_hr[:, 0] >= xmin_i1s - 1e-12) & (I1_hr[:, 0] <= xmax_i1s + 1e-12)
     I1s_hr = I1_hr[mask_I1s]
 
-    # Store source -> Pi1hr time once, reused by f3 and f6
+    # Full lower-feeder sampling on I1 from x=0 to xCA1, used only for field 6
+    xmin_i1f = x0
+    xmax_i1f = max(x0, CA1[0])
+    mask_I1f = (I1_hr[:, 0] >= xmin_i1f - 1e-12) & (I1_hr[:, 0] <= xmax_i1f + 1e-12)
+    I1f_hr = I1_hr[mask_I1f]
+
+    # Store source -> Pi1hr times for the two samplings
     t_I1s = np.hypot(I1s_hr[:, 0] - sx, I1s_hr[:, 1] - sy) / v1
+    t_I1f = np.hypot(I1f_hr[:, 0] - sx, I1f_hr[:, 1] - sy) / v1
 
     # Direct time everywhere in upper fields as a base
     t_direct = np.hypot(X - sx, Y - sy) / v1
@@ -188,10 +195,10 @@ def compute_traveltime_bruteforce(
     if idx.size:
         RX = X[idx]
         RY = Y[idx]
-        dx = RX[:, None] - I1s_hr[:, 0][None, :]
-        dy = RY[:, None] - I1s_hr[:, 1][None, :]
-        d_R_I1s = np.hypot(dx, dy)
-        T[idx] = np.min(t_I1s[None, :] + d_R_I1s / v2, axis=1)
+        dx = RX[:, None] - I1f_hr[:, 0][None, :]
+        dy = RY[:, None] - I1f_hr[:, 1][None, :]
+        d_R_I1f = np.hypot(dx, dy)
+        T[idx] = np.min(t_I1f[None, :] + d_R_I1f / v2, axis=1)
 
     # ------------------------------------------------------------------
     # f7: shadow cone from D2 in lower medium
@@ -206,6 +213,8 @@ def compute_traveltime_bruteforce(
         "theta_c": theta_c,
         "I1s_hr": I1s_hr,
         "t_I1s": t_I1s,
+        "I1f_hr": I1f_hr,
+        "t_I1f": t_I1f,
         "I2_hr": I2_hr,
         "s_I2": s_I2,
         "t_I2": t_I2,

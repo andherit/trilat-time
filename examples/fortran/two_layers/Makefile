@@ -14,6 +14,7 @@ GENERIC_SRC  := $(SRC_DIR)/generic.f90
 LISTS_SRC    := $(SRC_DIR)/lists.f90
 LAT_MESH_SRC := $(SRC_DIR)/LAT_mesh.f90
 LAT_TIME_SRC := $(SRC_DIR)/LAT_time.f90
+TIME_DEBUG_SRC := $(SRC_DIR)/time_debug.f90
 TIME_SRC     := $(SRC_DIR)/time.f90
 IOMOD_SRC    := $(SRC_DIR)/iomod.f90
 MAIN_SRC     := two_layers.f90
@@ -22,6 +23,7 @@ GENERIC_OBJ  := $(OBJ_DIR)/generic.o
 LISTS_OBJ    := $(OBJ_DIR)/lists.o
 LAT_MESH_OBJ := $(OBJ_DIR)/LAT_mesh.o
 LAT_TIME_OBJ := $(OBJ_DIR)/LAT_time.o
+TIME_DEBUG_OBJ := $(OBJ_DIR)/time_debug.o
 TIME_OBJ     := $(OBJ_DIR)/time.o
 IOMOD_OBJ    := $(OBJ_DIR)/iomod.o
 MAIN_OBJ     := $(OBJ_DIR)/two_layers.o
@@ -31,6 +33,7 @@ OBJS := \
 	$(LISTS_OBJ) \
 	$(LAT_MESH_OBJ) \
 	$(LAT_TIME_OBJ) \
+	$(TIME_DEBUG_OBJ) \
 	$(TIME_OBJ) \
 	$(IOMOD_OBJ) \
 	$(MAIN_OBJ)
@@ -57,13 +60,16 @@ $(LAT_MESH_OBJ): $(LAT_MESH_SRC) $(GENERIC_OBJ) $(LISTS_OBJ) | $(OBJ_DIR) $(MOD_
 $(LAT_TIME_OBJ): $(LAT_TIME_SRC) $(GENERIC_OBJ) $(LAT_MESH_OBJ) | $(OBJ_DIR) $(MOD_DIR)
 	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -c $< -o $@
 
-$(TIME_OBJ): $(TIME_SRC) $(GENERIC_OBJ) $(LISTS_OBJ) $(LAT_MESH_OBJ) $(LAT_TIME_OBJ) | $(OBJ_DIR) $(MOD_DIR)
+$(TIME_DEBUG_OBJ): $(TIME_DEBUG_SRC) $(GENERIC_OBJ) | $(OBJ_DIR) $(MOD_DIR)
+	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -c $< -o $@
+
+$(TIME_OBJ): $(TIME_SRC) $(GENERIC_OBJ) $(LISTS_OBJ) $(LAT_MESH_OBJ) $(LAT_TIME_OBJ) $(TIME_DEBUG_OBJ) | $(OBJ_DIR) $(MOD_DIR)
 	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -c $< -o $@
 
 $(IOMOD_OBJ): $(IOMOD_SRC) $(GENERIC_OBJ) $(LAT_MESH_OBJ) | $(OBJ_DIR) $(MOD_DIR)
 	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -c $< -o $@
 
-$(MAIN_OBJ): $(MAIN_SRC) $(GENERIC_OBJ) $(LISTS_OBJ) $(LAT_MESH_OBJ) $(LAT_TIME_OBJ) $(TIME_OBJ) $(IOMOD_OBJ) | $(OBJ_DIR) $(MOD_DIR)
+$(MAIN_OBJ): $(MAIN_SRC) $(GENERIC_OBJ) $(LISTS_OBJ) $(LAT_MESH_OBJ) $(LAT_TIME_OBJ) $(TIME_DEBUG_OBJ) $(TIME_OBJ) $(IOMOD_OBJ) | $(OBJ_DIR) $(MOD_DIR)
 	$(FC) $(FFLAGS) -J$(MOD_DIR) -I$(MOD_DIR) -c $< -o $@
 
 run: $(TARGET)

@@ -1,0 +1,19 @@
+# Build artifacts
+build/
+*.o
+*.mod
+
+# Executables
+two_layers
+ramp
+gradient
+mesh_gradient
+
+# Generated VTK results
+result.vtk
+
+# Local Codex metadata
+.codex
+
+# enforce line endings across teams 
+echo "* text=auto" > .gitattributes

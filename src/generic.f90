@@ -7,7 +7,6 @@ integer,parameter :: real4 = selected_real_kind(6,37) ! 6 significant digits of 
 integer,parameter :: real8 = selected_real_kind(15,307)
 integer,parameter :: pin = int4
 integer,parameter :: pr = real8
-integer,parameter :: psav = real4
 real(pr), parameter :: infinity=1.e32_pr
 ! real(pr), parameter :: water_level= 10**-precision(1) ! 10**-12._pr !1000._pr*epsilon(10.**-20._pr)
 ! real(pr), parameter :: water_level=10._pr*epsilon(1._pr)

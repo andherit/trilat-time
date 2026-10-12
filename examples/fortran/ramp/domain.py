@@ -1,6 +1,83 @@
 import gmsh
 import numpy as np
-from domain_time_bruteforce import compute_traveltime_bruteforce
+from domain_time_bruteforce import compute_traveltime_bruteforce as _compute_traveltime_bruteforce
+
+
+def compute_traveltime_bruteforce(
+    xyz,
+    field_id,
+    src=(500.0, 500.0),
+    x0=0.0,
+    width=10000.0,
+    xk1=3333.3,
+    yk1=1666.7,
+    xk2=6666.7,
+    yk2=2254.42,
+    v1=1000.0,
+    v2=3000.0,
+    ds_hr=1.0,
+    interface_tol=1.0e-6,
+):
+    T, aux = _compute_traveltime_bruteforce(
+        xyz,
+        field_id=field_id,
+        src=src,
+        x0=x0,
+        width=width,
+        xk1=xk1,
+        yk1=yk1,
+        xk2=xk2,
+        yk2=yk2,
+        v1=v1,
+        v2=v2,
+        ds_hr=ds_hr,
+        interface_tol=interface_tol,
+    )
+
+    X = xyz[:, 0]
+    Y = xyz[:, 1]
+    sx, sy = src
+
+    t_direct = np.hypot(X - sx, Y - sy) / v1
+    T[field_id == 0] = t_direct[field_id == 0]
+
+    idx = np.where(field_id == 3)[0]
+    if idx.size:
+        I2_hr = aux["I2_hr"]
+        t_I2 = aux["t_I2"]
+        RX = X[idx]
+        RY = Y[idx]
+        dx = RX[:, None] - I2_hr[:, 0][None, :]
+        dy = RY[:, None] - I2_hr[:, 1][None, :]
+        d_R_I2 = np.hypot(dx, dy)
+        t_pc_i2 = np.min(t_I2[None, :] + d_R_I2 / v1, axis=1)
+        T[idx] = np.minimum(t_direct[idx], t_pc_i2)
+
+    idx = np.where(field_id == 4)[0]
+    if idx.size:
+        I2_hr = aux["I2_hr"]
+        t_I2 = aux["t_I2"]
+        theta_c = aux["theta_c"]
+        t_D2 = aux["t_D2"]
+        tan_tc = np.tan(theta_c)
+        cos_tc = np.cos(theta_c)
+
+        RX = X[idx]
+        RY = Y[idx]
+
+        dx = RX[:, None] - I2_hr[:, 0][None, :]
+        dy = RY[:, None] - I2_hr[:, 1][None, :]
+        d_R_I2 = np.hypot(dx, dy)
+        t_pc_i2 = np.min(t_I2[None, :] + d_R_I2 / v1, axis=1)
+
+        x_ca3 = RX - (yk2 - RY) * tan_tc
+        d2_ca3 = np.abs(x_ca3 - xk2)
+        ca3_r = (yk2 - RY) / cos_tc
+        t_conic_i3 = t_D2 + d2_ca3 / v2 + ca3_r / v1
+
+        T[idx] = np.minimum(t_direct[idx], np.minimum(t_pc_i2, t_conic_i3))
+
+    return T, aux
 
 
 # -----------------------------------------------------------------------------
@@ -531,7 +608,7 @@ def main():
         yk2=yk2,
         v1=vup,
         v2=vdown,
-        ds=1.0,
+        ds_hr=1.0,
         interface_tol=1.0e-6,
     )
 

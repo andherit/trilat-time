@@ -94,14 +94,40 @@ Velocity is defined **per cell**.
 
 ## Examples
 
-See `examples/`:
+The [`examples/`](examples/) directory contains standalone Fortran and
+notebook-based Python workflows.
 
-* Two-layer model
-* Diffraction example
-* Ramp geometry
-* Velocity gradient
+### Fortran
 
-These illustrate both Fortran and Python workflows.
+* [`two_layers`](examples/fortran/two_layers/) introduces the core Fortran
+  workflow with a source in a two-layer velocity model. A Python script
+  generates the initial mesh and model. Its
+  [README](examples/fortran/two_layers/README.md) explains the preprocessing,
+  solver calls, build, execution, and VTK output.
+* [`ramp`](examples/fortran/ramp/) demonstrates direct, refracted, head-wave,
+  and diffraction arrivals across a ramp-shaped velocity interface. A Python
+  script generates the initial mesh, model, and reference fields. See its
+  [README](examples/fortran/ramp/README.md) for preprocessing, build, and run
+  instructions.
+* [`gradient`](examples/fortran/gradient/) generates a triangular mesh and
+  vertical velocity gradient directly in Fortran, computes first-arrival
+  traveltimes, and compares them with the analytical solution. See its
+  [README](examples/fortran/gradient/README.md) for build and run instructions.
+
+### Python
+
+The [`examples/python/`](examples/python/) directory contains four Jupyter notebooks using the Python wrapper:
+
+* [`Ramp.ipynb`](examples/python/Ramp.ipynb) demonstrates direct, refracted, head-wave, and diffraction arrivals across a ramp-shaped velocity interface.
+* [`Diffraction.ipynb`](examples/python/Diffraction.ipynb) demonstrates
+  traveltime calculation around complex boundaries and diffraction points.
+* [`Velocity_Gradient.ipynb`](examples/python/Velocity_Gradient.ipynb)
+  computes traveltimes in a velocity gradient using an unstructured mesh and compares them with the analytical solution.
+* [`TwoLayer.ipynb`](examples/python/TwoLayer.ipynb) compares TriTime2d
+  against Mark Noble's Eik2d solver and Podvin & Lecomte's traveltime solver for a classic two-layer model.
+
+Compile the wrapper before running the notebooks; see the
+[Python example instructions](examples/python/Readme.md) for the required build command and dependencies, and (for `TwoLayer.ipynb`) how to build the comparison solvers.
 
 ---
 

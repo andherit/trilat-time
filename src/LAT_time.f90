@@ -23,15 +23,6 @@ module LAT_time
 
   real(pr), allocatable, dimension(:) :: kappa
   integer(pin), allocatable, dimension(:) :: mode
-
-!  real(pr), allocatable, dimension(:) :: velocity
-
-! set up for debugging solvers 
-  real(pr), allocatable, dimension(:) :: sface
-  real(pr), allocatable, dimension(:) :: shead
-  real(pr), allocatable, dimension(:) :: splane
-  real(pr), allocatable, dimension(:) :: sedge
-  real(pr), allocatable, dimension(:) :: scplane
-  real(pr), allocatable, dimension(:) :: origidnode
+  
 
 end module LAT_time
